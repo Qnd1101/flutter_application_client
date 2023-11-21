@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
+import 'package:intl/intl.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:custom_radio_grouped_button/custom_radio_grouped_button.dart';
 
@@ -50,6 +51,16 @@ class _MainState extends State<Main> {
   dynamic itemList = const Text('item');
   PanelController panelController = PanelController(); //장바구니 컨르롤러
 
+  String toCurrency(int n) {
+    return NumberFormat.currency(locale: "ko_KR", symbol: "₩").format(n);
+    // 위에는 선생님이 한 형식
+    // return NumberFormat.simpleCurrency(
+    //   locale: "ko_KR",
+    //   name: "",
+    //   decimalDigits: 0,
+    // ).format(n);
+  }
+
   // 카테고리 보기 기능
   Future<void> showCategoryList() async {
     var result = db
@@ -68,15 +79,22 @@ class _MainState extends State<Main> {
             return CustomRadioButton(
               elevation: 0,
               absoluteZeroSpacing: true,
+              defaultSelected: 'toAll',
               unSelectedColor: Theme.of(context).canvasColor,
-              buttonLables: [for (var data in datas) data['categoryName']],
-              buttonValues: [for (var data in datas) data.id],
+              buttonLables: [
+                '전체보기',
+                for (var data in datas) data['categoryName']
+              ],
+              buttonValues: [
+                'toAll',
+                for (var data in datas) data.id,
+              ],
               buttonTextStyle: const ButtonTextStyle(
                   selectedColor: Colors.white,
                   unSelectedColor: Colors.black,
                   textStyle: TextStyle(fontSize: 16)),
               radioButtonValue: (value) {
-                print(value);
+                showItems(value);
               },
               selectedColor: Theme.of(context).colorScheme.secondary,
             );
@@ -89,7 +107,55 @@ class _MainState extends State<Main> {
   }
 
   // 아이템 보기 기능
-
+  Future<void> showItems(String value) async {
+    // value(categoryId)를 갖고 있는 아이템들을 출력
+    setState(() {
+      itemList = FutureBuilder(
+        future: value != 'toAll'
+            ? db
+                .collection(itemCollectionName)
+                .where('categoryId', isEqualTo: value)
+                .get()
+            : db.collection(itemCollectionName).get(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData == true) {
+            var items = snapshot.data!.docs;
+            if (items.isEmpty) {
+              // 아이템이 존재하지 않을 경우
+              return const Center(child: Text('empty'));
+            } else {
+              // 아이템이 존재하는 경우
+              List<Widget> lt = [];
+              for (var item in items) {
+                lt.add(Container(
+                  margin: const EdgeInsets.all(5),
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                      border: Border.all(width: 2, color: Colors.black),
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Text(item['itemName']),
+                      Text(toCurrency(item['itemPrice']))
+                    ],
+                  ),
+                ));
+              }
+              return Wrap(
+                children: lt,
+              );
+            }
+          } else {
+            // 데이터 로드 중
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      );
+    });
+  }
   // 장바구니 기능
 
   @override
@@ -97,6 +163,7 @@ class _MainState extends State<Main> {
     // TODO: implement initState
     super.initState();
     showCategoryList();
+    showItems('toAll');
   }
 
   @override
@@ -105,19 +172,22 @@ class _MainState extends State<Main> {
       appBar: AppBar(
         title: const Text('bbungka coffee'),
         actions: [
-          Badge(
-            label: const Text('1'), // 장바구니 개수
-            child: IconButton(
-                onPressed: () {
-                  if (panelController.isPanelClosed) {
-                    panelController.open();
-                  } else {
-                    panelController.close();
-                  }
-                },
-                icon: const Icon(
-                  Icons.shopping_cart,
-                )),
+          Transform.translate(
+            offset: const Offset(-10, 10),
+            child: Badge(
+              label: const Text('1'), // 장바구니 개수
+              child: IconButton(
+                  onPressed: () {
+                    if (panelController.isPanelClosed) {
+                      panelController.open();
+                    } else {
+                      panelController.close();
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.shopping_cart,
+                  )),
+            ),
           )
         ],
       ),
@@ -137,7 +207,7 @@ class _MainState extends State<Main> {
             // 카테고리 목록
             categoryList,
             // 아이템
-            itemList,
+            Expanded(child: itemList),
           ],
         ),
       ),
