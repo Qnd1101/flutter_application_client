@@ -1,3 +1,4 @@
+import 'package:cart_stepper/cart_stepper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -77,6 +78,8 @@ class _MainState extends State<Main> {
             return const Text('nothing');
           } else {
             return CustomRadioButton(
+              enableButtonWrap: true,
+              wrapAlignment: WrapAlignment.start,
               elevation: 0,
               absoluteZeroSpacing: true,
               defaultSelected: 'toAll',
@@ -127,22 +130,94 @@ class _MainState extends State<Main> {
               // 아이템이 존재하는 경우
               List<Widget> lt = [];
               for (var item in items) {
-                lt.add(Container(
-                  margin: const EdgeInsets.all(5),
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                      border: Border.all(width: 2, color: Colors.black),
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text(item['itemName']),
-                      Text(toCurrency(item['itemPrice']))
-                    ],
+                lt.add(
+                  GestureDetector(
+                    onTap: () {
+                      int cnt = 1;
+                      int price = item['itemPrice'];
+                      var optionData = {};
+                      var orderData = {};
+
+                      // options를 가공
+                      List<dynamic> options = item['options'];
+                      List<Widget> datas = [];
+                      for (var option in options) {
+                        var values =
+                            option['optionValue'].toString().split('\n');
+                        optionData[option['optionName']] = values[0];
+
+                        datas.add(ListTile(
+                          title: Text(option['optionName']),
+                          subtitle: CustomRadioButton(
+                            enableButtonWrap: true,
+                            wrapAlignment: WrapAlignment.start,
+                            defaultSelected: values[0],
+                            buttonLables: values,
+                            buttonValues: values,
+                            radioButtonValue: (p0) {
+                              optionData[optionData['optionName']] = p0;
+                              print(optionData);
+                            },
+                            unSelectedColor: Colors.black54,
+                            selectedColor: Colors.teal,
+                          ),
+                        ));
+                      }
+                      showDialog(
+                        context: context,
+                        builder: (context) =>
+                            StatefulBuilder(builder: (context, st) {
+                          return AlertDialog(
+                            title: ListTile(
+                              title: Text('${item['itemName']}'),
+                              subtitle: Text(toCurrency(price * cnt)),
+                              trailing: CartStepper(
+                                value: cnt,
+                                stepper: 1,
+                                didChangeCount: (value) {
+                                  if (value > 0) {
+                                    st(() {
+                                      cnt = value;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            content: Column(
+                              children: datas,
+                            ),
+                            actions: [
+                              const Text('취소'),
+                              TextButton(
+                                  onPressed: () {
+                                    orderData['orderItem'] = item['itemName'];
+                                    orderData['orderQty'] = cnt;
+                                    orderData['options'] = optionData;
+                                  },
+                                  child: const Text('담기')),
+                            ],
+                          );
+                        }),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.all(5),
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                          border: Border.all(width: 2, color: Colors.black),
+                          color: Colors.redAccent,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Text(item['itemName']),
+                          Text(toCurrency(item['itemPrice']))
+                        ],
+                      ),
+                    ),
                   ),
-                ));
+                );
               }
               return Wrap(
                 children: lt,
