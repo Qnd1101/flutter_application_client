@@ -154,8 +154,8 @@ class _MainState extends State<Main> {
                             defaultSelected: values[0],
                             buttonLables: values,
                             buttonValues: values,
-                            radioButtonValue: (p0) {
-                              optionData[optionData['optionName']] = p0;
+                            radioButtonValue: (value) {
+                              optionData[option['optionName']] = value;
                               print(optionData);
                             },
                             unSelectedColor: Colors.black54,
