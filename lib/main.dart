@@ -2,6 +2,7 @@ import 'package:cart_stepper/cart_stepper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_client/oreder_result.dart';
 import 'firebase_options.dart';
 import 'package:intl/intl.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -333,7 +334,49 @@ class _MainState extends State<Main> {
               ),
               Expanded(
                 child: orderListView,
-              )
+              ),
+              ElevatedButton(
+                  onPressed: orderList.isEmpty
+                      ? null
+                      : () async {
+                          TextEditingController controller =
+                              TextEditingController();
+                          var result = await showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                    title: const Text('결재하기'),
+                                    content: TextFormField(
+                                      controller: controller,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context, null);
+                                          },
+                                          child: const Text('취소')),
+                                      TextButton(
+                                          onPressed: () {
+                                            var orderResult = {
+                                              'order': orderList,
+                                              'orderName': controller.text,
+                                            };
+                                            Navigator.pop(context, orderResult);
+                                          },
+                                          child: const Text('결제'))
+                                    ],
+                                  ));
+                          if (result != null) {
+                            // 결제가 완료되어 다음 페이지에서 주문 번호를 받는다.
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    OrderResult(orderResult: result),
+                              ),
+                            );
+                          }
+                        },
+                  child: const Text('결재하기'))
             ],
           ),
         ),
