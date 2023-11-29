@@ -2,7 +2,7 @@ import 'package:cart_stepper/cart_stepper.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_application_client/oreder_result.dart';
+import 'package:flutter_application_client/order_result.dart';
 import 'firebase_options.dart';
 import 'package:intl/intl.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -272,7 +272,14 @@ class _MainState extends State<Main> {
       );
     });
   }
-  // 장바구니 기능
+
+  // 장바구니 초기화
+  void clearOrder() {
+    setState(() {
+      orderList.clear();
+      showOrderList();
+    });
+  }
 
   @override
   void initState() {
@@ -365,15 +372,19 @@ class _MainState extends State<Main> {
                                           child: const Text('결제'))
                                     ],
                                   ));
+                          print(result);
+
                           if (result != null) {
+                            var t = result;
                             // 결제가 완료되어 다음 페이지에서 주문 번호를 받는다.
-                            Navigator.push(
+                            await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
-                                    OrderResult(orderResult: result),
+                                    OrderResult(orderResult: t),
                               ),
                             );
+                            clearOrder();
                           }
                         },
                   child: const Text('결재하기'))
